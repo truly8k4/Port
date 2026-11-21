@@ -84,8 +84,8 @@ h1 span{display:block}
 .role{font-size:20px;font-weight:700;color:var(--amber);margin:0 0 16px;line-height:1.5}
 .lead{max-width:56ch;margin:0 0 32px}
 .btns{display:flex;gap:20px;flex-wrap:wrap}
-.walk{position:relative;height:240px;overflow:hidden}
-.walk canvas{display:block;width:100%;height:100%;image-rendering:pixelated;max-width:none}
+.walk{position:relative;height:240px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.walk img{flex:none;image-rendering:pixelated}
 
 /* Mục */
 section.s{padding:72px 0}
@@ -104,8 +104,8 @@ section.s{padding:72px 0}
 /* Sprite lab */
 .lab{margin-bottom:48px}
 .lab-body{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
-.lab-view{min-height:360px;display:flex;align-items:center;justify-content:center;padding:24px;border-right:4px solid var(--line);overflow:hidden}
-.lab-view canvas{image-rendering:pixelated;max-width:100%;height:auto}
+.lab-view{height:420px;display:flex;align-items:center;justify-content:center;padding:12px;border-right:4px solid var(--line);overflow:hidden;cursor:zoom-in}
+.lab-view img{flex:none;image-rendering:pixelated}
 .lab-ctrl{padding:24px;display:flex;flex-direction:column;gap:24px}
 .lab-ctrl h3{margin:0 0 8px;font-size:13px;font-weight:500;color:var(--muted)}
 
@@ -193,8 +193,8 @@ dialog.lb[open]{display:flex;flex-direction:column}
         </div>
       </div>
       <figure class="win" style="margin-bottom:12px">
-        <figcaption class="bar"><span class="fname" id="hero-file">frames/</span><span class="dim" id="hero-frame">frame 1/4</span></figcaption>
-        <div class="walk checker" id="hero-walk"><canvas role="img" aria-label="Nhân vật pixel đi qua lại trên nền ô vuông trong suốt"></canvas></div>
+        <figcaption class="bar"><span class="fname" id="hero-file">characters/!$claw1.png</span><span class="dim" id="hero-frame">frame 1/4</span></figcaption>
+        <div class="walk checker" id="hero-walk"><img alt=""></div>
       </figure>
     </div>
   </section>
@@ -202,16 +202,15 @@ dialog.lb[open]{display:flex;flex-direction:column}
   <section class="s" id="sprites">
     <div class="wrap">
       <h2 class="sec-h">Sprite lab</h2>
-      <p class="sec-p">Mỗi khung hình là một file ảnh riêng trong <code>frames/tên-nhân-vật/</code>, trang chỉ đổi ảnh lần lượt để tạo chuyển động. Bên dưới là các sprite sheet gốc, xem nguyên tấm.</p>
+      <p class="sec-p">Mỗi file .png trong thư mục characters/ là một khung hình, trang tự đổi lần lượt giữa các ảnh. Chọn ảnh để xem riêng, bấm vào ảnh để phóng to.</p>
 
       <div class="win lab">
         <div class="bar"><span class="fname" id="lab-file">đang tải</span><span class="dim" id="lab-dim"></span></div>
         <div class="lab-body">
-          <div class="lab-view checker" id="lab-view"><canvas id="lab-canvas" role="img" aria-label="Xem trước hoạt ảnh đi bộ của nhân vật"></canvas></div>
+          <div class="lab-view checker" id="lab-view"><img id="lab-img" alt="" hidden></div>
           <div class="lab-ctrl">
-            <div><h3>Nhân vật</h3><div class="seg" id="lab-chars" role="group" aria-label="Chọn nhân vật"></div></div>
-            <div><h3>Phóng đại</h3><div class="seg" id="lab-scales" role="group" aria-label="Chọn độ phóng đại"></div></div>
-            <div><h3>Hoạt ảnh</h3><div class="seg"><button class="sbtn" id="lab-play" type="button" aria-pressed="true">Đang chạy</button></div></div>
+            <div><h3>Ảnh</h3><div class="seg" id="lab-chars" role="group" aria-label="Chọn ảnh"></div></div>
+            <div><h3>Tự đổi ảnh</h3><div class="seg"><button class="sbtn" id="lab-play" type="button" aria-pressed="true">Đang chạy</button></div></div>
           </div>
         </div>
       </div>
@@ -301,20 +300,30 @@ dialog.lb[open]{display:flex;flex-direction:column}
   </div>
 </dialog>
 
-<script src="frames.js"></script>
 <script>
 (() => {
 'use strict';
 
 /* ===== Nội dung: thêm hoặc đổi tên tác phẩm ở đây ===== */
 const DATA = {
+  // Ảnh .png mới bỏ vào các thư mục characters/, demo map/, preview/ tự hiện ra khi trang chạy trên web hoặc server.
+  // Danh sách này chỉ để đặt tên đẹp và làm dự phòng khi mở thẳng file index.html trên máy.
   characters: [
     { name: 'Claw 01', file: 'characters/!$claw1.png' },
     { name: 'Claw 02', file: 'characters/!$claw2.png' },
+    { name: 'Kubi', file: 'characters/!Kubi.png' },
+    { name: 'KuneKune', file: 'characters/!KuneKune.png' },
+    { name: 'SCP 173', file: 'characters/!SCP173.png' },
+    { name: 'Suki', file: 'characters/!Suki.png' },
+    { name: 'P1 to P2 Transform', file: 'characters/$P1toP2_Transform.png' },
   ],
   maps: [
     { name: 'Factory 029', file: 'demo map/!factory029_grid.png' },
     { name: 'Factory 037', file: 'demo map/!factory037_grid.png' },
+    { name: 'Map 39', file: 'demo map/!map39.png' },
+    { name: 'Map 40', file: 'demo map/!map40.png' },
+    { name: 'Map 41', file: 'demo map/!map41.png' },
+    { name: 'Map 42', file: 'demo map/!map42.png' },
   ],
   previews: [
     { name: 'Preview DRA', file: 'preview/preview_dra.png' },
@@ -341,9 +350,8 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const missingMsg = file => `<span class="miss">Không tìm thấy <code>${esc(file)}</code>.<br>Kiểm tra tên file và thư mục. Máy chủ phân biệt chữ hoa, chữ thường.</span>`;
 
 /* ---------- Ảnh: vừa khung theo bội số nguyên ---------- */
-function fitImg(img) {
+function fitImg(img, nw = img.naturalWidth, nh = img.naturalHeight) {
   const box = img.parentElement;
-  const nw = img.naturalWidth, nh = img.naturalHeight;
   if (!nw || !box) return;
   const cw = box.clientWidth - 24, ch = box.clientHeight - 24;
   if (cw <= 0 || ch <= 0) return;
@@ -465,186 +473,135 @@ const endDrag = () => { drag = null; lbStage.classList.remove('drag'); };
 lbStage.addEventListener('pointerup', endDrag);
 lbStage.addEventListener('pointercancel', endDrag);
 
-/* ---------- Hoạt ảnh: mỗi khung là một file .png trong frames/<tên>/ ---------- */
-// frames.js (do tools/build_frames.py hoặc GitHub Action tạo) liệt kê mọi .png của từng thư mục, đã sắp theo tên.
-const ANIMS = Object.entries(window.FRAMES || {}).filter(([, l]) => l.length).map(([name, files]) => ({ name, files }));
-const emptyMsg = `<span class="miss">Chưa có ảnh nào trong <code>frames/</code>.<br>Tạo thư mục <code>frames/tên-nhân-vật/</code>, bỏ các file .png vào, rồi chạy <code>python3 tools/build_frames.py</code> (GitHub Action tự chạy khi bạn push).</span>`;
+/* ---------- Tự đọc file .png trong các thư mục có sẵn ---------- */
+const FOLDERS = { characters: 'characters', maps: 'demo map', previews: 'preview' };
+const isPng = n => /\.png$/i.test(n);
+const prettyName = f => f.replace(/\.[^.]+$/, '').replace(/^[!$]+/, '').replace(/_grid$/i, '').replace(/[_-]+/g, ' ').trim();
 
-const loaded = new Map();
-const loadImg = file => new Promise((resolve, reject) => {
-  const img = new Image();
-  img.onload = () => resolve({ img, file });
-  img.onerror = () => reject(new Error(file));
-  img.src = enc(file);
-});
-function loadAnim(a) {
-  if (!loaded.has(a)) {
-    loaded.set(a, Promise.all(a.files.map(loadImg)).then(frames => ({
-      frames,
-      fw: Math.max(...frames.map(f => f.img.naturalWidth)),
-      fh: Math.max(...frames.map(f => f.img.naturalHeight)),
-    })));
+async function listFolder(dir) {
+  const opt = { signal: AbortSignal.timeout(4000) };
+  // 1) Máy chủ có bật danh sách thư mục (python -m http.server, Live Server...)
+  try {
+    const r = await fetch(enc(dir) + '/', { ...opt, cache: 'no-store' });
+    if (r.ok && /text\/html/.test(r.headers.get('content-type') || '')) {
+      const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+      const names = [...doc.querySelectorAll('a[href]')]
+        .map(a => decodeURIComponent(a.getAttribute('href').split(/[?#]/)[0].split('/').filter(Boolean).pop() || ''))
+        .filter(isPng);
+      if (names.length) return names;
+    }
+  } catch {}
+  // 2) GitHub Pages: hỏi API của GitHub xem thư mục có file nào
+  const m = location.hostname.match(/^(.+)\.github\.io$/);
+  if (m) {
+    const seg = location.pathname.split('/')[1];
+    const repo = seg && !seg.includes('.') ? seg : m[1] + '.github.io';
+    try {
+      const r = await fetch(`https://api.github.com/repos/${m[1]}/${repo}/contents/${enc(dir)}`, opt);
+      if (r.ok) return (await r.json()).filter(f => f.type === 'file' && isPng(f.name)).map(f => f.name);
+    } catch {}
   }
-  return loaded.get(a);
+  return null; // không đọc được thì dùng danh sách có sẵn trong DATA
 }
-// Vẽ một ảnh vào khung fw×fh: canh giữa ngang, chạm đáy. flip = lật ngang (đi sang trái).
-function drawFrame(ctx, an, img, s, dx, dy, flip) {
-  ctx.imageSmoothingEnabled = false;
-  const w = img.naturalWidth * s, h = img.naturalHeight * s;
-  const ox = Math.floor((an.fw * s - w) / 2), oy = an.fh * s - h;
-  if (flip) {
-    ctx.save();
-    ctx.translate(dx + an.fw * s, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(img, ox, dy + oy, w, h);
-    ctx.restore();
-  } else {
-    ctx.drawImage(img, dx + ox, dy + oy, w, h);
-  }
+async function discover() {
+  await Promise.all(Object.entries(FOLDERS).map(async ([group, dir]) => {
+    const names = await listFolder(dir);
+    if (!names) return;
+    names.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    const old = DATA[group];
+    DATA[group] = names.map(n => {
+      const file = `${dir}/${n}`;
+      return old.find(x => x.file === file) || { name: prettyName(n), file };
+    });
+  }));
 }
 
-/* ---------- Hero: nhân vật đi qua lại ---------- */
-async function initHero() {
-  const box = $('#hero-walk'), canvas = $('canvas', box), ctx = canvas.getContext('2d');
+/* ---------- Đổi ảnh: nạp sẵn rồi thay src, không cắt sheet ---------- */
+function swapImg(img, file) {
+  const pre = new Image();
+  pre.src = enc(file);
+  return pre.decode().then(() => {
+    img.src = pre.src;
+    fitImg(img, pre.naturalWidth, pre.naturalHeight);
+    return { w: pre.naturalWidth, h: pre.naturalHeight };
+  }, () => null);
+}
+
+/* ---------- Hero: lần lượt đổi qua các ảnh trong characters/ ---------- */
+function initHero() {
+  const box = $('#hero-walk'), img = $('img', box);
   const label = $('#hero-frame'), fileEl = $('#hero-file');
-  const first = ANIMS[0];
-  if (!first) { box.classList.remove('checker'); box.innerHTML = emptyMsg; label.textContent = 'trống'; fileEl.textContent = 'frames/'; return; }
-  let an;
-  try { an = await loadAnim(first); }
-  catch (e) { box.classList.remove('checker'); box.innerHTML = missingMsg(e.message); label.textContent = 'thiếu file'; return; }
-
-  const N = an.frames.length;
-  let W = 0, H = 0, s = 1;
-  let x = 0, dir = 1, stepIdx = 0, acc = 0, last = 0, raf = 0, visible = true;
-
-  const size = () => {
-    W = canvas.width = box.clientWidth;
-    H = canvas.height = box.clientHeight;
-    s = Math.max(1, Math.min(8, Math.round(140 / an.fh)));
-  };
-  const draw = () => {
-    const f = an.frames[stepIdx % N];
-    ctx.clearRect(0, 0, W, H);
-    const y = Math.round((H - an.fh * s) / 2 / s) * s;
-    drawFrame(ctx, an, f.img, s, Math.round(x / s) * s, y, dir < 0);
-    if (fileEl.textContent !== f.file) fileEl.textContent = f.file;
-    const t = `frame ${stepIdx % N + 1}/${N}`;
-    if (label.textContent !== t) label.textContent = t;
-  };
-  size();
-
-  if (reduceMotion) {
-    const still = () => { size(); x = Math.max(0, (W - an.fw * s) / 2); draw(); label.textContent = 'đứng yên'; };
-    still();
-    new ResizeObserver(still).observe(box);
-    return;
+  const list = DATA.characters;
+  if (!list.length) { box.classList.remove('checker'); box.innerHTML = missingMsg('characters/…'); label.textContent = 'trống'; return; }
+  let i = 0, t = 0;
+  async function show() {
+    const k = ++t, it = list[i];
+    fileEl.textContent = it.file;
+    label.textContent = `frame ${i + 1}/${list.length}`;
+    img.alt = it.name;
+    const ok = await swapImg(img, it.file);
+    if (k === t && !ok) label.textContent = 'thiếu file';
   }
-
-  const tick = t => {
-    const dt = Math.min(0.1, (t - last) / 1000);
-    last = t;
-    const max = Math.max(0, W - an.fw * s);
-    x += dir * dt * 72;
-    if (x >= max) { x = max; dir = -1; }
-    if (x <= 0) { x = 0; dir = 1; }
-    acc += dt;
-    if (acc >= 0.16) { acc = 0; stepIdx++; }
-    draw();
-    raf = requestAnimationFrame(tick);
-  };
-  const start = () => { if (!raf && visible && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(tick); } };
-  const stop = () => { cancelAnimationFrame(raf); raf = 0; };
-  new ResizeObserver(() => { size(); if (!raf) draw(); }).observe(box);
-  new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible ? start() : stop(); }).observe(box);
-  document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
-  start();
+  img.addEventListener('load', () => fitImg(img));
+  new ResizeObserver(() => fitImg(img)).observe(box);
+  show();
+  if (reduceMotion || list.length < 2) return;
+  setInterval(() => { if (!document.hidden) { i = (i + 1) % list.length; show(); } }, 1500);
 }
 
-/* ---------- Sprite lab ---------- */
-async function initLab() {
-  const canvas = $('#lab-canvas'), ctx = canvas.getContext('2d');
-  const view = $('#lab-view');
+/* ---------- Sprite lab: chọn ảnh, hoặc để tự đổi ảnh lần lượt ---------- */
+function initLab() {
+  const view = $('#lab-view'), img = $('#lab-img');
   const fileEl = $('#lab-file'), dimEl = $('#lab-dim');
-  const charBox = $('#lab-chars'), scaleBox = $('#lab-scales'), playBtn = $('#lab-play');
-  const SCALES = [2, 4, 6, 8];
-  const st = { scale: 4, playing: !reduceMotion, step: 0, an: null, token: 0 };
-
-  if (!ANIMS.length) {
-    canvas.hidden = true;
-    view.insertAdjacentHTML('beforeend', emptyMsg);
-    fileEl.textContent = 'frames/';
-    dimEl.textContent = 'trống';
-    playBtn.disabled = true;
+  const charBox = $('#lab-chars'), playBtn = $('#lab-play');
+  const list = DATA.characters;
+  if (!list.length) {
+    view.insertAdjacentHTML('beforeend', missingMsg('characters/…'));
+    fileEl.textContent = 'characters/'; dimEl.textContent = 'trống'; playBtn.disabled = true;
     return;
   }
+  const st = { i: 0, t: 0, playing: !reduceMotion };
+  const press = () => charBox.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.i) === st.i)));
 
-  const render = () => {
-    const an = st.an;
-    if (!an) return;
-    const f = an.frames[st.step % an.frames.length];
-    canvas.width = an.fw * st.scale;
-    canvas.height = an.fh * st.scale;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawFrame(ctx, an, f.img, st.scale, 0, 0, false);
-    fileEl.textContent = f.file;
-    dimEl.textContent = `${an.fw}×${an.fh}px, khung ${st.step % an.frames.length + 1}/${an.frames.length}`;
-  };
-  const press = (box, match) => box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(match(b))));
-
-  ANIMS.forEach((a, i) => {
+  list.forEach((c, i) => {
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'sbtn'; b.textContent = a.name; b.dataset.i = i;
+    b.type = 'button'; b.className = 'sbtn'; b.textContent = c.name; b.dataset.i = i;
     charBox.append(b);
   });
-  SCALES.forEach(n => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'sbtn'; b.textContent = n + '×'; b.dataset.n = n;
-    scaleBox.append(b);
-  });
 
-  async function setChar(i, autoScale) {
-    const a = ANIMS[i];
-    const token = ++st.token;
-    press(charBox, b => Number(b.dataset.i) === i);
-    fileEl.textContent = a.name;
+  async function go(i) {
+    const k = ++st.t, it = list[i];
+    st.i = i;
+    press();
+    fileEl.textContent = it.file;
     dimEl.textContent = 'đang tải';
-    try {
-      const an = await loadAnim(a);
-      if (token !== st.token) return;
-      st.an = an;
-      st.step = 0;
-      if (autoScale) {
-        const fit = Math.floor(300 / an.fh);
-        st.scale = SCALES.filter(n => n <= fit).pop() || SCALES[0];
-        press(scaleBox, b => Number(b.dataset.n) === st.scale);
-      }
-      view.querySelector('.miss')?.remove();
-      canvas.hidden = false;
-      render();
-    } catch (e) {
-      if (token !== st.token) return;
-      st.an = null;
-      canvas.hidden = true;
-      view.querySelector('.miss')?.remove();
-      view.insertAdjacentHTML('beforeend', missingMsg(e.message));
-      fileEl.textContent = e.message;
+    const ok = await swapImg(img, it.file);
+    if (k !== st.t) return;
+    view.querySelector('.miss')?.remove();
+    if (!ok) {
+      img.hidden = true;
+      view.insertAdjacentHTML('beforeend', missingMsg(it.file));
       dimEl.textContent = 'thiếu file';
+      return;
     }
+    img.hidden = false;
+    img.alt = it.name;
+    dimEl.textContent = `${ok.w}×${ok.h}px, ảnh ${i + 1}/${list.length}`;
   }
 
-  charBox.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setChar(Number(b.dataset.i), true); });
-  scaleBox.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; st.scale = Number(b.dataset.n); press(scaleBox, x => Number(x.dataset.n) === st.scale); render(); });
+  charBox.addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(Number(b.dataset.i)); });
+  view.addEventListener('click', () => { if (!img.hidden) openLightbox('characters', st.i); });
   const setPlay = on => {
     st.playing = on;
-    if (!on) { st.step = 0; render(); }
     playBtn.setAttribute('aria-pressed', String(on));
     playBtn.textContent = on ? 'Đang chạy' : 'Đã dừng';
   };
   playBtn.addEventListener('click', () => setPlay(!st.playing));
-  setInterval(() => { if (st.playing && st.an && !document.hidden) { st.step++; render(); } }, 160);
+  new ResizeObserver(() => { if (!img.hidden && img.naturalWidth) fitImg(img); }).observe(view);
+  setInterval(() => { if (st.playing && list.length > 1 && !document.hidden) go((st.i + 1) % list.length); }, 1500);
 
   setPlay(st.playing);
-  await setChar(0, true);
+  go(0);
 }
 
 /* ---------- Video ---------- */
@@ -709,13 +666,15 @@ function initSwatches() {
 }
 
 /* ---------- Khởi động ---------- */
-fill('#sheets', 'characters');
-fill('#map-grid', 'maps');
-fill('#preview-grid', 'previews');
 DATA.videos.forEach(v => $('#video-grid').append(videoCard(v)));
 initSwatches();
-initHero();
-initLab();
+discover().then(() => {
+  fill('#sheets', 'characters');
+  fill('#map-grid', 'maps');
+  fill('#preview-grid', 'previews');
+  initHero();
+  initLab();
+});
 })();
 </script>
 </body>
