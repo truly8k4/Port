@@ -101,6 +101,14 @@ section.s{padding:72px 0}
 .stage:disabled{cursor:default}
 .stage img{flex:none;max-width:100%;image-rendering:pixelated}
 
+/* Khung hình rời */
+.frames{display:grid;gap:12px;padding:16px}
+.frow{display:grid;grid-template-columns:48px repeat(var(--n),minmax(0,1fr));gap:8px}
+.frow b{align-self:center;font-size:11px;font-weight:500;color:var(--muted)}
+.fcell{display:flex;align-items:flex-end;justify-content:center;min-height:72px;padding:6px;border:0;cursor:zoom-in;color:inherit;font:inherit}
+.fcell:disabled{cursor:default}
+.fcell img{flex:none;max-width:100%;height:auto;image-rendering:pixelated}
+
 /* Sprite lab */
 .lab{margin-bottom:48px}
 .lab-body{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
@@ -202,7 +210,7 @@ dialog.lb[open]{display:flex;flex-direction:column}
   <section class="s" id="sprites">
     <div class="wrap">
       <h2 class="sec-h">Sprite lab</h2>
-      <p class="sec-p">Sprite sheet nhân vật tách khung theo chuẩn RPG Maker, 3 cột × 4 hàng. Chọn hướng đi và độ phóng đại để xem từng vòng đi bộ.</p>
+      <p class="sec-p">Mỗi khung hình là một file ảnh riêng, trang chỉ đổi ảnh lần lượt để tạo chuyển động. Chọn hướng đi và độ phóng đại để xem từng vòng đi bộ.</p>
 
       <div class="win lab">
         <div class="bar"><span class="fname" id="lab-file">đang tải</span><span class="dim" id="lab-dim"></span></div>
@@ -307,10 +315,16 @@ dialog.lb[open]{display:flex;flex-direction:column}
 'use strict';
 
 /* ===== Nội dung: thêm hoặc đổi tên tác phẩm ở đây ===== */
+// walkSet('characters/claw1') tạo đường dẫn characters/claw1/down_1.png … up_4.png
+const walkSet = (folder, count = 4) => Object.fromEntries(['down', 'left', 'right', 'up'].map(d =>
+  [d, Array.from({ length: count }, (_, i) => `${folder}/${d}_${i + 1}.png`)]));
 const DATA = {
+  // Nhân vật: mỗi hướng là một danh sách ảnh rời, phát lần lượt theo thứ tự.
+  // Muốn tự đặt tên file thì viết tay: frames: { down: ['a.png', 'b.png', …], left: […], right: […], up: […] }
+  // Chỉ có một hướng cũng được, các hướng thiếu sẽ bị tắt nút.
   characters: [
-    { name: 'Claw 01', file: 'characters/!$claw1.png' },
-    { name: 'Claw 02', file: 'characters/!$claw2.png' },
+    { name: 'Claw 01', frames: walkSet('characters/claw1') },
+    { name: 'Claw 02', frames: walkSet('characters/claw2') },
   ],
   maps: [
     { name: 'Factory 029', file: 'demo map/!factory029_grid.png' },
@@ -375,7 +389,7 @@ function artCard(item, group, index) {
   });
   img.src = enc(item.file);
   new ResizeObserver(() => fitImg(img)).observe(stage);
-  stage.addEventListener('click', () => openLightbox(group, index));
+  stage.addEventListener('click', () => openLightbox(DATA[group], index));
   return fig;
 }
 
@@ -389,8 +403,8 @@ const lb = $('#lb'), lbImg = $('#lb-img'), lbStage = $('#lb-stage'), lbGrid = $(
 const lbTitle = $('#lb-title'), lbInfo = $('#lb-info'), lbGridBtn = $('#lb-grid-btn');
 const lbState = { list: [], i: 0, zoom: 'fit', grid: false };
 
-function openLightbox(group, i) {
-  lbState.list = DATA[group];
+function openLightbox(list, i) {
+  lbState.list = list;
   lbState.i = i;
   lbState.zoom = 'fit';
   $('#lb-prev').hidden = $('#lb-next').hidden = lbState.list.length < 2;
@@ -465,75 +479,132 @@ const endDrag = () => { drag = null; lbStage.classList.remove('drag'); };
 lbStage.addEventListener('pointerup', endDrag);
 lbStage.addEventListener('pointercancel', endDrag);
 
-/* ---------- Sprite sheet (RPG Maker: 3 cột × 4 hàng) ---------- */
-const sheets = new Map();
-function loadSheet(file) {
-  if (!sheets.has(file)) {
-    sheets.set(file, new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve({ img, fw: Math.floor(img.naturalWidth / 3), fh: Math.floor(img.naturalHeight / 4) });
-      img.onerror = () => reject(new Error(file));
-      img.src = enc(file);
-    }));
+/* ---------- Khung hình: mỗi khung là một file ảnh riêng ---------- */
+const DIRS = [['down', 'Xuống'], ['left', 'Trái'], ['right', 'Phải'], ['up', 'Lên']];
+const dirList = c => DIRS.filter(([k]) => c.frames[k] && c.frames[k].length);
+const anyDir = set => Object.values(set.dirs)[0];
+
+const sets = new Map();
+const loadImg = file => new Promise((resolve, reject) => {
+  const img = new Image();
+  img.onload = () => resolve({ img, file });
+  img.onerror = () => reject(new Error(file));
+  img.src = enc(file);
+});
+function loadChar(c) {
+  if (!sets.has(c)) {
+    sets.set(c, (async () => {
+      const dirs = {};
+      for (const [k] of dirList(c)) dirs[k] = await Promise.all(c.frames[k].map(loadImg));
+      const all = Object.values(dirs).flat();
+      if (!all.length) throw new Error(c.name);
+      return {
+        dirs,
+        fw: Math.max(...all.map(f => f.img.naturalWidth)),
+        fh: Math.max(...all.map(f => f.img.naturalHeight)),
+      };
+    })());
   }
-  return sheets.get(file);
+  return sets.get(c);
 }
-const WALK = [0, 1, 2, 1];
-const ROW = { down: 0, left: 1, right: 2, up: 3 };
-function drawFrame(ctx, sh, col, row, s, dx, dy) {
+// Vẽ một ảnh vào khung fw×fh: canh giữa theo chiều ngang, chạm đáy
+function drawFrame(ctx, set, img, s, dx, dy) {
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(sh.img, col * sh.fw, row * sh.fh, sh.fw, sh.fh, dx, dy, sh.fw * s, sh.fh * s);
+  const w = img.naturalWidth, h = img.naturalHeight;
+  ctx.drawImage(img, dx + Math.floor((set.fw - w) / 2) * s, dy + (set.fh - h) * s, w * s, h * s);
+}
+
+/* ---------- Thẻ liệt kê các khung rời của một nhân vật ---------- */
+function fitThumb(img) {
+  const box = img.parentElement;
+  if (!img.naturalWidth || !box) return;
+  const w = box.clientWidth - 12;
+  if (w <= 0) return;
+  const f = w / img.naturalWidth;
+  const s = f >= 1 ? Math.floor(f) : f;
+  img.style.width = img.naturalWidth * s + 'px';
+  img.style.imageRendering = s < 1 ? 'auto' : 'pixelated';
+}
+function frameCard(c) {
+  const fig = document.createElement('figure');
+  fig.className = 'win';
+  const dirs = dirList(c);
+  const items = dirs.flatMap(([k, label]) => c.frames[k].map((file, i) => ({ name: `${c.name}, ${label.toLowerCase()}, khung ${i + 1}`, file })));
+  let n = 0;
+  const rows = dirs.map(([k, label]) => {
+    const cells = c.frames[k].map((f, i) =>
+      `<button class="fcell checker" type="button" data-i="${n++}" aria-label="Phóng to ${esc(c.name)}, ${label.toLowerCase()}, khung ${i + 1}"><img alt="" decoding="async" src="${esc(enc(f))}"></button>`).join('');
+    return `<div class="frow" style="--n:${c.frames[k].length}"><b>${label}</b>${cells}</div>`;
+  }).join('');
+  fig.innerHTML = `<figcaption class="bar"><span class="fname">${esc(c.name)}</span><span class="dim">${items.length} ảnh</span></figcaption><div class="frames">${rows}</div>`;
+  fig.addEventListener('click', e => {
+    const b = e.target.closest('.fcell');
+    if (b && !b.disabled) openLightbox(items, Number(b.dataset.i));
+  });
+  fig.addEventListener('load', e => { if (e.target.tagName === 'IMG') fitThumb(e.target); }, true);
+  fig.addEventListener('error', e => {
+    const cell = e.target.closest && e.target.closest('.fcell');
+    if (!cell) return;
+    cell.disabled = true;
+    cell.classList.remove('checker');
+    cell.innerHTML = '<span class="miss">thiếu</span>';
+  }, true);
+  new ResizeObserver(() => fig.querySelectorAll('.fcell img').forEach(fitThumb)).observe(fig);
+  return fig;
 }
 
 /* ---------- Hero: nhân vật đi qua lại ---------- */
 async function initHero() {
   const box = $('#hero-walk'), canvas = $('canvas', box), ctx = canvas.getContext('2d');
-  const label = $('#hero-frame');
+  const label = $('#hero-frame'), fileEl = $('#hero-file');
   const first = DATA.characters[0];
   if (!first) { box.innerHTML = missingMsg('characters/…'); return; }
-  $('#hero-file').textContent = first.file;
-  let sh;
-  try { sh = await loadSheet(first.file); }
-  catch { box.classList.remove('checker'); box.innerHTML = missingMsg(first.file); label.textContent = 'thiếu file'; return; }
+  let set;
+  try { set = await loadChar(first); }
+  catch (e) { box.classList.remove('checker'); box.innerHTML = missingMsg(e.message); label.textContent = 'thiếu file'; return; }
 
   let W = 0, H = 0, s = 1;
-  let x = 0, dir = 1, stepIdx = 1, acc = 0, last = 0, raf = 0, visible = true;
+  let x = 0, dir = 1, stepIdx = 0, acc = 0, last = 0, raf = 0, visible = true;
 
   const size = () => {
     W = canvas.width = box.clientWidth;
     H = canvas.height = box.clientHeight;
-    s = Math.max(1, Math.min(8, Math.round(140 / sh.fh)));
+    s = Math.max(1, Math.min(8, Math.round(140 / set.fh)));
   };
-  const draw = row => {
+  const draw = key => {
+    const list = set.dirs[key] || anyDir(set);
+    const f = list[stepIdx % list.length];
     ctx.clearRect(0, 0, W, H);
-    const y = Math.round((H - sh.fh * s) / 2 / s) * s;
-    drawFrame(ctx, sh, WALK[stepIdx], row, s, Math.round(x / s) * s, y);
+    const y = Math.round((H - set.fh * s) / 2 / s) * s;
+    drawFrame(ctx, set, f.img, s, Math.round(x / s) * s, y);
+    if (fileEl.textContent !== f.file) fileEl.textContent = f.file;
+    const t = `frame ${stepIdx % list.length + 1}/${list.length}`;
+    if (label.textContent !== t) label.textContent = t;
   };
   size();
 
   if (reduceMotion) {
-    x = Math.max(0, (W - sh.fw * s) / 2);
-    draw(ROW.down);
-    new ResizeObserver(() => { size(); x = Math.max(0, (W - sh.fw * s) / 2); draw(ROW.down); }).observe(box);
-    label.textContent = 'đứng yên';
+    const still = () => { size(); x = Math.max(0, (W - set.fw * s) / 2); draw('down'); label.textContent = 'đứng yên'; };
+    still();
+    new ResizeObserver(still).observe(box);
     return;
   }
 
   const tick = t => {
     const dt = Math.min(0.1, (t - last) / 1000);
     last = t;
-    const max = Math.max(0, W - sh.fw * s);
+    const max = Math.max(0, W - set.fw * s);
     x += dir * dt * 72;
     if (x >= max) { x = max; dir = -1; }
     if (x <= 0) { x = 0; dir = 1; }
     acc += dt;
-    if (acc >= 0.16) { acc = 0; stepIdx = (stepIdx + 1) % 4; label.textContent = `frame ${stepIdx + 1}/4`; }
-    draw(dir > 0 ? ROW.right : ROW.left);
+    if (acc >= 0.16) { acc = 0; stepIdx++; }
+    draw(dir > 0 ? 'right' : 'left');
     raf = requestAnimationFrame(tick);
   };
   const start = () => { if (!raf && visible && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(tick); } };
   const stop = () => { cancelAnimationFrame(raf); raf = 0; };
-  new ResizeObserver(() => { size(); if (!raf) draw(dir > 0 ? ROW.right : ROW.left); }).observe(box);
+  new ResizeObserver(() => { size(); if (!raf) draw(dir > 0 ? 'right' : 'left'); }).observe(box);
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible ? start() : stop(); }).observe(box);
   document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
   start();
@@ -546,16 +617,19 @@ async function initLab() {
   const fileEl = $('#lab-file'), dimEl = $('#lab-dim');
   const charBox = $('#lab-chars'), dirBox = $('#lab-dirs'), scaleBox = $('#lab-scales'), playBtn = $('#lab-play');
   const SCALES = [2, 4, 6, 8];
-  const DIRS = [['down', 'Xuống'], ['left', 'Trái'], ['right', 'Phải'], ['up', 'Lên']];
-  const st = { idx: 0, dir: 'down', scale: 4, playing: !reduceMotion, step: 1, sheet: null, token: 0 };
+  const st = { idx: 0, dir: 'down', scale: 4, playing: !reduceMotion, step: 0, set: null, token: 0 };
 
   const render = () => {
-    const sh = st.sheet;
-    if (!sh) return;
-    canvas.width = sh.fw * st.scale;
-    canvas.height = sh.fh * st.scale;
+    const set = st.set;
+    if (!set) return;
+    const list = set.dirs[st.dir] || anyDir(set);
+    const f = list[st.step % list.length];
+    canvas.width = set.fw * st.scale;
+    canvas.height = set.fh * st.scale;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawFrame(ctx, sh, WALK[st.step], ROW[st.dir], st.scale, 0, 0);
+    drawFrame(ctx, set, f.img, st.scale, 0, 0);
+    fileEl.textContent = f.file;
+    dimEl.textContent = `${set.fw}×${set.fh}px, khung ${st.step % list.length + 1}/${list.length}`;
   };
   const press = (box, match) => box.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(match(b))));
 
@@ -581,42 +655,52 @@ async function initLab() {
     const token = ++st.token;
     st.idx = i;
     press(charBox, b => Number(b.dataset.i) === i);
-    fileEl.textContent = c.file;
+    fileEl.textContent = c.name;
     dimEl.textContent = 'đang tải';
     try {
-      const sh = await loadSheet(c.file);
+      const set = await loadChar(c);
       if (token !== st.token) return;
-      st.sheet = sh;
-      dimEl.textContent = `${sh.fw}×${sh.fh}px mỗi khung`;
+      st.set = set;
+      st.step = 0;
+      if (!set.dirs[st.dir]) st.dir = Object.keys(set.dirs)[0];
+      dirBox.querySelectorAll('button').forEach(b => { b.disabled = !set.dirs[b.dataset.k]; });
+      press(dirBox, b => b.dataset.k === st.dir);
       if (autoScale) {
-        const fit = Math.floor(300 / sh.fh);
+        const fit = Math.floor(300 / set.fh);
         st.scale = SCALES.filter(n => n <= fit).pop() || SCALES[0];
         press(scaleBox, b => Number(b.dataset.n) === st.scale);
       }
       view.querySelector('.miss')?.remove();
       canvas.hidden = false;
       render();
-    } catch {
+    } catch (e) {
       if (token !== st.token) return;
-      st.sheet = null;
+      st.set = null;
       canvas.hidden = true;
       view.querySelector('.miss')?.remove();
-      view.insertAdjacentHTML('beforeend', missingMsg(c.file));
+      view.insertAdjacentHTML('beforeend', missingMsg(e.message));
+      fileEl.textContent = e.message;
       dimEl.textContent = 'thiếu file';
     }
   }
 
   charBox.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setChar(Number(b.dataset.i), true); });
-  dirBox.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; st.dir = b.dataset.k; press(dirBox, x => x.dataset.k === st.dir); render(); });
+  dirBox.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    st.dir = b.dataset.k; st.step = 0;
+    press(dirBox, x => x.dataset.k === st.dir);
+    render();
+  });
   scaleBox.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; st.scale = Number(b.dataset.n); press(scaleBox, x => Number(x.dataset.n) === st.scale); render(); });
   const setPlay = on => {
     st.playing = on;
-    if (!on) { st.step = 1; render(); }
+    if (!on) { st.step = 0; render(); }
     playBtn.setAttribute('aria-pressed', String(on));
     playBtn.textContent = on ? 'Đang chạy' : 'Đã dừng';
   };
   playBtn.addEventListener('click', () => setPlay(!st.playing));
-  setInterval(() => { if (st.playing && st.sheet && !document.hidden) { st.step = (st.step + 1) % 4; render(); } }, 160);
+  setInterval(() => { if (st.playing && st.set && !document.hidden) { st.step++; render(); } }, 160);
 
   press(dirBox, b => b.dataset.k === st.dir);
   setPlay(st.playing);
@@ -685,7 +769,7 @@ function initSwatches() {
 }
 
 /* ---------- Khởi động ---------- */
-fill('#sheets', 'characters');
+DATA.characters.forEach(c => $('#sheets').append(frameCard(c)));
 fill('#map-grid', 'maps');
 fill('#preview-grid', 'previews');
 DATA.videos.forEach(v => $('#video-grid').append(videoCard(v)));
